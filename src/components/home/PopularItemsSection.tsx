@@ -45,7 +45,7 @@ export default function PopularItemsSection() {
               key={item._id}
               id={item._id}
               title={item.title}
-              description={item.shortDescription}
+              description={item.description}
               price={item.price}
               image={item.image}
               rating={item.rating}

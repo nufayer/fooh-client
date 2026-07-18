@@ -18,8 +18,7 @@ export default function AddItemPage() {
   const router = useRouter();
 
   const [title, setTitle] = useState("");
-  const [shortDescription, setShortDescription] = useState("");
-  const [fullDescription, setFullDescription] = useState("");
+  const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -49,10 +48,8 @@ export default function AddItemPage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!title.trim()) newErrors.title = "Title is required";
-    if (!shortDescription.trim())
-      newErrors.shortDescription = "Short description is required";
-    if (!fullDescription.trim())
-      newErrors.fullDescription = "Full description is required";
+    if (!description.trim())
+      newErrors.description = "Description is required";
     if (!price || parseFloat(price) <= 0)
       newErrors.price = "Valid price is required";
     if (!category) newErrors.category = "Category is required";
@@ -85,8 +82,7 @@ export default function AddItemPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          shortDescription: shortDescription.trim(),
-          fullDescription: fullDescription.trim(),
+          description: description.trim(),
           price: parseFloat(price),
           category,
           image: imageUrl || undefined,
@@ -137,8 +133,7 @@ export default function AddItemPage() {
               variant="outline"
               onClick={() => {
                 setTitle("");
-                setShortDescription("");
-                setFullDescription("");
+                setDescription("");
                 setPrice("");
                 setCategory("");
                 setImageUrl("");
@@ -185,21 +180,13 @@ export default function AddItemPage() {
               error={errors.title}
             />
 
-            <Input
-              label="Short Description"
-              placeholder="Brief description of the item"
-              value={shortDescription}
-              onChange={(e) => setShortDescription(e.target.value)}
-              error={errors.shortDescription}
-            />
-
             <Textarea
-              label="Full Description"
-              placeholder="Detailed description including ingredients, preparation method, etc."
-              value={fullDescription}
-              onChange={setFullDescription}
-              rows={5}
-              error={errors.fullDescription}
+              label="Description"
+              placeholder="Describe the item including ingredients, preparation method, etc."
+              value={description}
+              onChange={setDescription}
+              rows={4}
+              error={errors.description}
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -171,7 +171,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
 
-            <p className="text-text-secondary mb-6">{item.shortDescription}</p>
+            <p className="text-text-secondary mb-6">{item.description}</p>
 
             <div className="flex flex-wrap gap-2 mb-6">
               {item.tags?.map((tag) => (
@@ -249,7 +249,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 About this item
               </h3>
               <p className="text-text-secondary leading-relaxed">
-                {item.fullDescription}
+                {item.description}
               </p>
               <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -284,7 +284,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                   key={related._id}
                   id={related._id}
                   title={related.title}
-                  description={related.shortDescription}
+                  description={related.description}
                   price={related.price}
                   image={related.image}
                   rating={related.rating}

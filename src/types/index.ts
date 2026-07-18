@@ -1,8 +1,7 @@
 export interface FoodItem {
   _id: string;
   title: string;
-  shortDescription: string;
-  fullDescription: string;
+  description: string;
   price: number;
   image: string;
   images: string[];
