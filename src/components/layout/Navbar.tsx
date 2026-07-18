@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import {
   Menu,
   X,
@@ -11,6 +12,8 @@ import {
   LogOut,
   ChevronDown,
   Utensils,
+  ShoppingCart,
+  ClipboardList,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Avatar from "@/components/ui/Avatar";
@@ -21,27 +24,37 @@ const publicLinks = [
   { href: "/explore?view=categories", label: "Categories" },
 ];
 
-const privateLinks = [
+const customerLinks = [
   { href: "/", label: "Home" },
   { href: "/explore", label: "Explore" },
   { href: "/explore?view=categories", label: "Categories" },
+  { href: "/orders", label: "My Orders" },
+];
+
+const adminLinks = [
+  { href: "/", label: "Home" },
+  { href: "/explore", label: "Explore" },
+  { href: "/orders", label: "Orders" },
   { href: "/items/add", label: "Add Item" },
   { href: "/items/manage", label: "Manage Items" },
+  { href: "/categories/add", label: "Add Category" },
+  { href: "/categories/manage", label: "Manage Categories" },
 ];
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { itemCount } = useCart();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const links = user ? privateLinks : publicLinks;
+  const links = !user ? publicLinks : user.role === "admin" ? adminLinks : customerLinks;
 
   const isActive = (href: string) => {
-    const url = new URL(href, window.location.origin);
-    const hrefPath = url.pathname;
-    const hrefView = url.searchParams.get("view");
+    const [hrefPath, hrefQuery] = href.split("?");
+    const hrefParams = new URLSearchParams(hrefQuery);
+    const hrefView = hrefParams.get("view");
     const currentView = searchParams.get("view");
 
     if (hrefView) {
@@ -61,9 +74,7 @@ export default function Navbar() {
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
               <Utensils className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-text-primary">
-              FOOH
-            </span>
+            <span className="text-xl font-bold text-text-primary">FOOH</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-1">
@@ -84,44 +95,82 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center gap-3">
             {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-bg-hover transition-colors"
-                >
-                  <Avatar name={user.name} size="sm" />
-                  <span className="text-sm font-medium text-text-primary">
-                    {user.name}
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-text-muted" />
-                </button>
-                {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-bg-card border border-border rounded-xl shadow-xl py-2 animate-fade-in">
-                    <div className="px-4 py-2 border-b border-border">
-                      <p className="text-sm font-medium text-text-primary">{user.name}</p>
-                      <p className="text-xs text-text-muted">{user.email}</p>
-                    </div>
-                    <Link
-                      href="/items/manage"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover"
-                      onClick={() => setIsProfileOpen(false)}
-                    >
-                      <User className="w-4 h-4" />
-                      My Items
-                    </Link>
-                    <button
-                      onClick={() => {
-                        logout();
-                        setIsProfileOpen(false);
-                      }}
-                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-error hover:bg-bg-hover"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </div>
+              <>
+                {user.role === "customer" && (
+                  <Link
+                    href="/cart"
+                    className="relative p-2 rounded-xl hover:bg-bg-hover transition-colors"
+                  >
+                    <ShoppingCart className="w-5 h-5 text-text-secondary" />
+                    {itemCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-xs font-bold rounded-full flex items-center justify-center">
+                        {itemCount > 99 ? "99+" : itemCount}
+                      </span>
+                    )}
+                  </Link>
                 )}
-              </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-bg-hover transition-colors"
+                  >
+                    <Avatar name={user.name} size="sm" />
+                    <span className="text-sm font-medium text-text-primary">
+                      {user.name}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-text-muted" />
+                  </button>
+                  {isProfileOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-bg-card border border-border rounded-xl shadow-xl py-2 animate-fade-in">
+                      <div className="px-4 py-2 border-b border-border">
+                        <p className="text-sm font-medium text-text-primary">{user.name}</p>
+                        <p className="text-xs text-text-muted">{user.email}</p>
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full capitalize">
+                          {user.role}
+                        </span>
+                      </div>
+                      {user.role === "customer" && (
+                        <>
+                          <Link
+                            href="/cart"
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <ShoppingCart className="w-4 h-4" />
+                            Cart ({itemCount})
+                          </Link>
+                          <Link
+                            href="/orders"
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover"
+                            onClick={() => setIsProfileOpen(false)}
+                          >
+                            <ClipboardList className="w-4 h-4" />
+                            My Orders
+                          </Link>
+                        </>
+                      )}
+                      <Link
+                        href="/items/manage"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <User className="w-4 h-4" />
+                        Profile
+                      </Link>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setIsProfileOpen(false);
+                        }}
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-error hover:bg-bg-hover"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
             ) : (
               <>
                 <Link href="/login">
@@ -164,6 +213,16 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {user && user.role === "customer" && (
+              <Link
+                href="/cart"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Cart {itemCount > 0 && `(${itemCount})`}
+              </Link>
+            )}
             {user && (
               <button
                 onClick={() => {

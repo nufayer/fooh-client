@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, use } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Star,
   Clock,
@@ -14,21 +14,37 @@ import {
   Minus,
   ShoppingCart,
 } from "lucide-react";
-import { foodItems } from "@/data/mockData";
-import { reviews } from "@/data/mockData";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
+import { useItem, useItems } from "@/hooks/useData";
 import Button from "@/components/ui/Button";
-import Rating from "@/components/ui/Rating";
 import FoodCard from "@/components/ui/FoodCard";
 
 export default function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const item = foodItems.find((i) => i.id === id);
+  const { item, isLoading, error } = useItem(id);
+  const { user } = useAuth();
+  const { addToCart } = useCart();
+  const router = useRouter();
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
-  if (!item) {
+  const { items: relatedItems } = useItems({
+    category: item?.category,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-bg-dark pt-20 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (error || !item) {
     return (
       <div className="min-h-screen bg-bg-dark pt-20 flex items-center justify-center">
         <div className="text-center">
@@ -43,9 +59,22 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  const relatedItems = foodItems
-    .filter((i) => i.category === item.category && i.id !== item.id)
+  const filteredRelated = relatedItems
+    .filter((i) => i._id !== item._id)
     .slice(0, 4);
+
+  const images = item.images?.length > 0 ? item.images : [item.image];
+
+  const handleAddToCart = async () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    if (user.role === "admin") return;
+    setIsAdding(true);
+    await addToCart(item._id, quantity);
+    setIsAdding(false);
+  };
 
   return (
     <div className="min-h-screen bg-bg-dark pt-20 pb-12">
@@ -63,12 +92,10 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div>
             <div className="relative rounded-2xl overflow-hidden mb-4 aspect-[4/3]">
-              <Image
-                src={item.images[selectedImage]}
+              <img
+                src={images[selectedImage]}
                 alt={item.title}
-                fill
-                className="object-cover"
-                priority
+                className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute top-4 left-4">
                 <span className="bg-primary text-white text-sm font-semibold px-4 py-2 rounded-full">
@@ -77,26 +104,27 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              {item.images.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImage(i)}
-                  className={`relative h-24 rounded-xl overflow-hidden border-2 transition-all ${
-                    selectedImage === i
-                      ? "border-primary"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <Image
-                    src={img}
-                    alt={`${item.title} ${i + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+            {images.length > 1 && (
+              <div className="grid grid-cols-3 gap-3">
+                {images.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedImage(i)}
+                    className={`relative h-24 rounded-xl overflow-hidden border-2 transition-all ${
+                      selectedImage === i
+                        ? "border-primary"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`${item.title} ${i + 1}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -146,7 +174,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             <p className="text-text-secondary mb-6">{item.shortDescription}</p>
 
             <div className="flex flex-wrap gap-2 mb-6">
-              {item.tags.map((tag) => (
+              {item.tags?.map((tag) => (
                 <span
                   key={tag}
                   className="px-3 py-1 bg-bg-surface border border-border rounded-full text-sm text-text-secondary"
@@ -164,31 +192,56 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 </span>
               </div>
 
-              <div className="flex items-center gap-4 mb-6">
-                <span className="text-text-secondary">Quantity</span>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 rounded-xl bg-bg-surface border border-border flex items-center justify-center text-text-primary hover:bg-bg-hover transition-colors"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-12 text-center text-lg font-semibold text-text-primary">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-10 h-10 rounded-xl bg-bg-surface border border-border flex items-center justify-center text-text-primary hover:bg-bg-hover transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              {user && user.role !== "admin" && (
+                <>
+                  <div className="flex items-center gap-4 mb-6">
+                    <span className="text-text-secondary">Quantity</span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="w-10 h-10 rounded-xl bg-bg-surface border border-border flex items-center justify-center text-text-primary hover:bg-bg-hover transition-colors"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="w-12 text-center text-lg font-semibold text-text-primary">
+                        {quantity}
+                      </span>
+                      <button
+                        onClick={() => setQuantity(quantity + 1)}
+                        className="w-10 h-10 rounded-xl bg-bg-surface border border-border flex items-center justify-center text-text-primary hover:bg-bg-hover transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
 
-              <Button variant="primary" className="w-full" size="lg">
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                Add to Cart — ${(item.price * quantity).toFixed(2)}
-              </Button>
+                  <Button
+                    variant="primary"
+                    className="w-full"
+                    size="lg"
+                    onClick={handleAddToCart}
+                    isLoading={isAdding}
+                  >
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    Add to Cart — ${(item.price * quantity).toFixed(2)}
+                  </Button>
+                </>
+              )}
+
+              {!user && (
+                <Link href="/login" className="block">
+                  <Button variant="primary" className="w-full" size="lg">
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    Login to Order
+                  </Button>
+                </Link>
+              )}
+
+              {user && user.role === "admin" && (
+                <p className="text-center text-text-muted text-sm mt-2">
+                  Admin view — ordering not available
+                </p>
+              )}
             </div>
 
             <div className="bg-bg-card border border-border rounded-2xl p-6">
@@ -216,61 +269,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold text-text-primary mb-2">
-            Customer <span className="text-primary">Reviews</span>
-          </h2>
-          <p className="text-text-secondary mb-8">
-            See what others are saying about this item
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {reviews.map((review) => (
-              <div
-                key={review.id}
-                className="bg-bg-card border border-border rounded-2xl p-5"
-              >
-                <div className="flex items-center gap-1 mb-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 ${
-                        i < review.rating
-                          ? "fill-accent text-accent"
-                          : "fill-transparent text-text-muted"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="text-text-secondary text-sm mb-4">
-                  {review.comment}
-                </p>
-                <div className="flex items-center gap-3">
-                  <img
-                    src={review.userAvatar}
-                    alt={review.userName}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">
-                      {review.userName}
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      {new Date(review.date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {relatedItems.length > 0 && (
-          <div>
+        {filteredRelated.length > 0 && (
+          <div className="mt-16">
             <h2 className="text-2xl font-bold text-text-primary mb-2">
               Related <span className="text-primary">Items</span>
             </h2>
@@ -279,10 +279,10 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedItems.map((related) => (
+              {filteredRelated.map((related) => (
                 <FoodCard
-                  key={related.id}
-                  id={related.id}
+                  key={related._id}
+                  id={related._id}
                   title={related.title}
                   description={related.shortDescription}
                   price={related.price}

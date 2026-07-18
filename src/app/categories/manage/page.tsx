@@ -4,16 +4,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { useItems } from "@/hooks/useData";
-import { Eye, Trash2, Search, Plus } from "lucide-react";
+import { useCategories } from "@/hooks/useData";
+import { Pencil, Trash2, Search, Plus } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-export default function ManageItemsPage() {
+export default function ManageCategoriesPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const { items, isLoading: itemsLoading } = useItems();
+  const { categories, isLoading: categoriesLoading } = useCategories();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export default function ManageItemsPage() {
     }
   }, [user, authLoading, router]);
 
-  if (authLoading || itemsLoading) {
+  if (authLoading || categoriesLoading) {
     return (
       <div className="min-h-screen bg-bg-dark pt-20 flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
@@ -35,16 +35,14 @@ export default function ManageItemsPage() {
 
   if (!user || user.role !== "admin") return null;
 
-  const filteredItems = items.filter(
-    (item) =>
-      item.title.toLowerCase().includes(search.toLowerCase()) ||
-      item.category.toLowerCase().includes(search.toLowerCase())
+  const filteredCategories = categories.filter((cat) =>
+    cat.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDelete = async (id: string) => {
     setDeleting(true);
     try {
-      const res = await fetch(`${API_URL}/api/items/${id}`, {
+      const res = await fetch(`${API_URL}/api/categories/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -65,23 +63,23 @@ export default function ManageItemsPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-text-primary mb-2">
-              Manage <span className="text-primary">Items</span>
+              Manage <span className="text-primary">Categories</span>
             </h1>
             <p className="text-text-secondary">
-              {items.length} items in your menu
+              {categories.length} categories in your menu
             </p>
           </div>
-          <Link href="/items/add">
+          <Link href="/categories/add">
             <Button variant="primary">
               <Plus className="w-4 h-4 mr-2" />
-              Add New Item
+              Add New Category
             </Button>
           </Link>
         </div>
 
         <div className="mb-6">
           <Input
-            placeholder="Search items by title or category..."
+            placeholder="Search categories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             icon={<Search className="w-4 h-4" />}
@@ -95,16 +93,10 @@ export default function ManageItemsPage() {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left px-6 py-4 text-sm font-semibold text-text-secondary">
-                    Item
-                  </th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-text-secondary hidden sm:table-cell">
                     Category
                   </th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-text-secondary hidden md:table-cell">
-                    Price
-                  </th>
-                  <th className="text-left px-6 py-4 text-sm font-semibold text-text-secondary hidden lg:table-cell">
-                    Rating
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-text-secondary hidden sm:table-cell">
+                    Items
                   </th>
                   <th className="text-right px-6 py-4 text-sm font-semibold text-text-secondary">
                     Actions
@@ -112,62 +104,45 @@ export default function ManageItemsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.map((item) => (
+                {filteredCategories.map((cat) => (
                   <tr
-                    key={item._id}
+                    key={cat._id}
                     className="border-b border-border last:border-0 hover:bg-bg-hover transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
-                        <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                        <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-bg-surface">
                           <img
-                            src={item.image}
-                            alt={item.title}
+                            src={cat.image}
+                            alt={cat.name}
                             className="absolute inset-0 w-full h-full object-cover"
                           />
                         </div>
                         <div className="min-w-0">
                           <p className="font-medium text-text-primary truncate">
-                            {item.title}
-                          </p>
-                          <p className="text-sm text-text-muted truncate sm:hidden">
-                            {item.category}
+                            {cat.name}
                           </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 hidden sm:table-cell">
                       <span className="px-3 py-1 bg-bg-surface rounded-full text-xs text-text-secondary">
-                        {item.category}
+                        {cat.itemCount} items
                       </span>
-                    </td>
-                    <td className="px-6 py-4 hidden md:table-cell">
-                      <span className="font-medium text-text-primary">
-                        ${item.price.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 hidden lg:table-cell">
-                      <div className="flex items-center gap-1">
-                        <span className="text-accent">★</span>
-                        <span className="text-text-primary">{item.rating}</span>
-                        <span className="text-text-muted">
-                          ({item.reviews})
-                        </span>
-                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <Link href={`/items/${item._id}`}>
+                        <Link href={`/categories/edit/${cat._id}`}>
                           <button className="p-2 rounded-lg text-text-muted hover:text-primary hover:bg-primary/10 transition-colors">
-                            <Eye className="w-4 h-4" />
+                            <Pencil className="w-4 h-4" />
                           </button>
                         </Link>
-                        {deleteConfirm === item._id ? (
+                        {deleteConfirm === cat._id ? (
                           <div className="flex items-center gap-1">
                             <Button
                               variant="danger"
                               size="sm"
-                              onClick={() => handleDelete(item._id)}
+                              onClick={() => handleDelete(cat._id)}
                               isLoading={deleting}
                             >
                               Confirm
@@ -182,7 +157,7 @@ export default function ManageItemsPage() {
                           </div>
                         ) : (
                           <button
-                            onClick={() => setDeleteConfirm(item._id)}
+                            onClick={() => setDeleteConfirm(cat._id)}
                             className="p-2 rounded-lg text-text-muted hover:text-error hover:bg-error/10 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -196,11 +171,11 @@ export default function ManageItemsPage() {
             </table>
           </div>
 
-          {filteredItems.length === 0 && (
+          {filteredCategories.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-text-muted mb-4">No items found</p>
-              <Link href="/items/add">
-                <Button variant="primary">Add Your First Item</Button>
+              <p className="text-text-muted mb-4">No categories found</p>
+              <Link href="/categories/add">
+                <Button variant="primary">Add Your First Category</Button>
               </Link>
             </div>
           )}

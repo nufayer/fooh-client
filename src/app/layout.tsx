@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
@@ -31,14 +32,17 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-bg-dark text-text-primary">
+      <body className="min-h-full flex flex-col bg-bg-dark text-text-primary" suppressHydrationWarning>
         <AuthProvider>
-          <Suspense>
-            <Navbar />
-          </Suspense>
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <CartProvider>
+            <Suspense>
+              <Navbar />
+            </Suspense>
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

@@ -2,7 +2,6 @@
 
 import { ReactNode } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Star, Clock, MapPin } from "lucide-react";
 import Button from "./Button";
 
@@ -36,11 +35,10 @@ export default function FoodCard({
   return (
     <div className="bg-bg-card rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 group">
       <div className="relative h-48 overflow-hidden">
-        <Image
+        <img
           src={image}
           alt={title}
-          fill
-          className="object-cover group-hover:scale-110 transition-transform duration-500"
+          className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
         <div className="absolute top-3 left-3">
           <span className="bg-primary/90 text-white text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm">

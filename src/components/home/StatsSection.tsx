@@ -1,56 +1,39 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { Users, Store, MapPin, Truck } from "lucide-react";
-import { stats } from "@/data/mockData";
+import { useEffect, useState } from "react";
 
-const iconMap: Record<string, React.ElementType> = {
-  users: Users,
-  store: Store,
-  "map-pin": MapPin,
-  truck: Truck,
-};
+const stats = [
+  { label: "Happy Customers", value: 5000, suffix: "+" },
+  { label: "Food Items", value: 200, suffix: "+" },
+  { label: "Delivery Partners", value: 150, suffix: "+" },
+  { label: "Cities Covered", value: 25, suffix: "" },
+];
 
-function AnimatedCounter({ target }: { target: string }) {
+function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
   const [count, setCount] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const numericTarget = parseInt(target.replace(/[^0-9]/g, ""));
-  const suffix = target.replace(/[0-9]/g, "");
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          let start = 0;
-          const duration = 2000;
-          const increment = numericTarget / (duration / 16);
+    const duration = 2000;
+    const steps = 60;
+    const increment = value / steps;
+    let current = 0;
 
-          const timer = setInterval(() => {
-            start += increment;
-            if (start >= numericTarget) {
-              setCount(numericTarget);
-              clearInterval(timer);
-            } else {
-              setCount(Math.floor(start));
-            }
-          }, 16);
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= value) {
+        setCount(value);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(current));
+      }
+    }, duration / steps);
 
-          return () => clearInterval(timer);
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
-    return () => observer.disconnect();
-  }, [numericTarget]);
+    return () => clearInterval(timer);
+  }, [value]);
 
   return (
-    <span ref={ref}>
-      {count}
+    <span className="text-4xl sm:text-5xl font-bold text-primary">
+      {count.toLocaleString()}
       {suffix}
     </span>
   );
@@ -58,23 +41,15 @@ function AnimatedCounter({ target }: { target: string }) {
 
 export default function StatsSection() {
   return (
-    <section className="py-20 bg-gradient-to-br from-primary/10 via-bg-dark to-secondary/10">
+    <section className="py-20 bg-bg-card border-y border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {stats.map((stat) => {
-            const Icon = iconMap[stat.icon] || Users;
-            return (
-              <div key={stat.label} className="text-center">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Icon className="w-8 h-8 text-primary" />
-                </div>
-                <div className="text-3xl sm:text-4xl font-bold text-text-primary mb-2">
-                  <AnimatedCounter target={stat.value} />
-                </div>
-                <p className="text-text-secondary">{stat.label}</p>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {stats.map((stat) => (
+            <div key={stat.label} className="text-center">
+              <AnimatedCounter value={stat.value} suffix={stat.suffix} />
+              <p className="text-text-secondary mt-2">{stat.label}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

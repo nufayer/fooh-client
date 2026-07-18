@@ -7,7 +7,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  avatar: string | null;
+  role: "customer" | "admin";
 }
 
 interface AuthContextType {
@@ -30,11 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const session = await authClient.getSession();
         if (session?.data?.user) {
+          const u = session.data.user as any;
           setUser({
-            id: session.data.user.id,
-            name: session.data.user.name || "User",
-            email: session.data.user.email,
-            avatar: session.data.user.image || null,
+            id: u.id,
+            name: u.name || "User",
+            email: u.email,
+            role: u.role || "customer",
           });
         }
       } catch {
@@ -55,11 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(result.error.message || "Login failed");
     }
     if (result.data?.user) {
+      const u = result.data.user as any;
       setUser({
-        id: result.data.user.id,
-        name: result.data.user.name || "User",
-        email: result.data.user.email,
-        avatar: result.data.user.image || null,
+        id: u.id,
+        name: u.name || "User",
+        email: u.email,
+        role: u.role || "customer",
       });
     }
   };
@@ -74,11 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(result.error.message || "Registration failed");
     }
     if (result.data?.user) {
+      const u = result.data.user as any;
       setUser({
-        id: result.data.user.id,
-        name: result.data.user.name || "User",
-        email: result.data.user.email,
-        avatar: result.data.user.image || null,
+        id: u.id,
+        name: u.name || "User",
+        email: u.email,
+        role: u.role || "customer",
       });
     }
   };

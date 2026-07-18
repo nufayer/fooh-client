@@ -3,15 +3,18 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCategories } from "@/hooks/useData";
 import { ImagePlus, Plus, X } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Select";
-import { categories } from "@/data/mockData";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function AddItemPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { categories } = useCategories();
   const router = useRouter();
 
   const [title, setTitle] = useState("");
@@ -25,9 +28,10 @@ export default function AddItemPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && (!user || user.role !== "admin")) {
       router.push("/login");
     }
   }, [user, authLoading, router]);
@@ -40,7 +44,7 @@ export default function AddItemPage() {
     );
   }
 
-  if (!user) return null;
+  if (!user || user.role !== "admin") return null;
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -69,11 +73,37 @@ export default function AddItemPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      setIsSubmitting(true);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setIsSubmitting(false);
+    if (!validate()) return;
+
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/api/items`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          shortDescription: shortDescription.trim(),
+          fullDescription: fullDescription.trim(),
+          price: parseFloat(price),
+          category,
+          image: imageUrl || undefined,
+          tags,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to add item");
+      }
+
       setSubmitted(true);
+    } catch (err: any) {
+      setApiError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -139,6 +169,12 @@ export default function AddItemPage() {
           </p>
         </div>
 
+        {apiError && (
+          <div className="mb-6 p-4 bg-error/10 border border-error/30 rounded-xl text-error text-sm">
+            {apiError}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="bg-bg-card border border-border rounded-2xl p-6 space-y-6">
             <Input
@@ -184,7 +220,7 @@ export default function AddItemPage() {
                 onChange={setCategory}
                 options={categories.map((cat) => ({
                   value: cat.name,
-                  label: `${cat.icon} ${cat.name}`,
+                  label: cat.name,
                 }))}
                 placeholder="Select category"
               />

@@ -1,11 +1,10 @@
 "use client";
 
-import { Suspense, useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Search, SlidersHorizontal, X, ArrowRight } from "lucide-react";
-import { foodItems, categories } from "@/data/mockData";
+import { useItems, useCategories } from "@/hooks/useData";
 import FoodCard from "@/components/ui/FoodCard";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import Input from "@/components/ui/Input";
@@ -38,6 +37,24 @@ const ratingOptions = [
 const ITEMS_PER_PAGE = 8;
 
 function CategoriesView() {
+  const { categories, isLoading } = useCategories();
+
+  if (isLoading) {
+    return (
+      <div>
+        <div className="mb-8">
+          <div className="h-10 w-64 bg-bg-surface rounded-xl animate-pulse mb-2" />
+          <div className="h-5 w-96 bg-bg-surface rounded-xl animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-56 bg-bg-surface rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-8">
@@ -49,38 +66,43 @@ function CategoriesView() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {categories.map((category) => (
-          <Link
-            key={category.id}
-            href={`/explore?category=${category.name.toLowerCase()}`}
-            className="group relative h-56 rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10"
-          >
-            <Image
-              src={category.image}
-              alt={category.name}
-              fill
-              className="object-cover group-hover:scale-110 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-bg-dark/90 via-bg-dark/40 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-text-primary">
-                    {category.icon} {category.name}
-                  </h3>
-                  <p className="text-sm text-text-muted mt-1">
-                    {category.itemCount} items available
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
-                  <ArrowRight className="w-5 h-5 text-primary" />
+      {categories.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-text-muted text-lg">No categories available yet.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {categories.map((category) => (
+            <Link
+              key={category._id}
+              href={`/explore?category=${category.name.toLowerCase()}`}
+              className="group relative h-56 rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10"
+            >
+              <img
+                src={category.image}
+                alt={category.name}
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-bg-dark/90 via-bg-dark/40 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-text-primary">
+                      {category.name}
+                    </h3>
+                    <p className="text-sm text-text-muted mt-1">
+                      {category.itemCount} items available
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+                    <ArrowRight className="w-5 h-5 text-primary" />
+                  </div>
                 </div>
               </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -92,70 +114,39 @@ function ExploreContent() {
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
-  const [priceRange, setPriceRange] = useState("");
-  const [minRating, setMinRating] = useState("");
   const [sortBy, setSortBy] = useState("popular");
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [isLoading] = useState(false);
+
+  const { items, isLoading } = useItems({
+    category: selectedCategory || undefined,
+    search: search || undefined,
+    sort: sortBy,
+  });
+  const { categories } = useCategories();
 
   const filteredItems = useMemo(() => {
-    let items = [...foodItems];
+    let result = [...items];
 
-    if (search) {
-      const query = search.toLowerCase();
-      items = items.filter(
-        (item) =>
-          item.title.toLowerCase().includes(query) ||
-          item.shortDescription.toLowerCase().includes(query) ||
-          item.category.toLowerCase().includes(query) ||
-          item.tags.some((tag) => tag.toLowerCase().includes(query))
-      );
-    }
-
-    if (selectedCategory) {
-      items = items.filter(
-        (item) => item.category.toLowerCase() === selectedCategory.toLowerCase()
-      );
-    }
+    // Client-side price and rating filters
+    const priceRange = searchParams.get("price") || "";
+    const minRating = searchParams.get("rating") || "";
 
     if (priceRange) {
       const [min, max] = priceRange.split("-").map(Number);
       if (max) {
-        items = items.filter((item) => item.price >= min && item.price <= max);
+        result = result.filter((item) => item.price >= min && item.price <= max);
       } else {
-        items = items.filter((item) => item.price >= 20);
+        result = result.filter((item) => item.price >= 20);
       }
     }
 
     if (minRating) {
-      items = items.filter((item) => item.rating >= parseFloat(minRating));
+      result = result.filter((item) => item.rating >= parseFloat(minRating));
     }
 
-    switch (sortBy) {
-      case "rating":
-        items.sort((a, b) => b.rating - a.rating);
-        break;
-      case "price-low":
-        items.sort((a, b) => a.price - b.price);
-        break;
-      case "price-high":
-        items.sort((a, b) => b.price - a.price);
-        break;
-      case "newest":
-        items.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        break;
-      case "popular":
-      default:
-        items.sort((a, b) => b.reviews - a.reviews);
-        break;
-    }
-
-    return items;
-  }, [search, selectedCategory, priceRange, minRating, sortBy]);
+    return result;
+  }, [items, searchParams]);
 
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
   const paginatedItems = filteredItems.slice(
@@ -166,14 +157,11 @@ function ExploreContent() {
   const clearFilters = () => {
     setSearch("");
     setSelectedCategory("");
-    setPriceRange("");
-    setMinRating("");
     setSortBy("popular");
     setCurrentPage(1);
   };
 
-  const hasActiveFilters =
-    search || selectedCategory || priceRange || minRating || sortBy !== "popular";
+  const hasActiveFilters = search || selectedCategory || sortBy !== "popular";
 
   if (viewCategories) {
     return (
@@ -193,7 +181,7 @@ function ExploreContent() {
             Explore <span className="text-primary">Menu</span>
           </h1>
           <p className="text-text-secondary">
-            Discover {foodItems.length} delicious dishes from top restaurants
+            Discover delicious dishes from top restaurants
           </p>
         </div>
 
@@ -240,29 +228,9 @@ function ExploreContent() {
                     }}
                     options={categories.map((cat) => ({
                       value: cat.name.toLowerCase(),
-                      label: `${cat.icon} ${cat.name}`,
+                      label: cat.name,
                     }))}
                     placeholder="All Categories"
-                  />
-
-                  <Select
-                    label="Price Range"
-                    value={priceRange}
-                    onChange={(val) => {
-                      setPriceRange(val);
-                      setCurrentPage(1);
-                    }}
-                    options={priceRanges.slice(1)}
-                  />
-
-                  <Select
-                    label="Minimum Rating"
-                    value={minRating}
-                    onChange={(val) => {
-                      setMinRating(val);
-                      setCurrentPage(1);
-                    }}
-                    options={ratingOptions.slice(1)}
                   />
 
                   {hasActiveFilters && (
@@ -316,8 +284,8 @@ function ExploreContent() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {paginatedItems.map((item) => (
                     <FoodCard
-                      key={item.id}
-                      id={item.id}
+                      key={item._id}
+                      id={item._id}
                       title={item.title}
                       description={item.shortDescription}
                       price={item.price}

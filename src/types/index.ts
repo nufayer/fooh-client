@@ -1,5 +1,5 @@
 export interface FoodItem {
-  id: string;
+  _id: string;
   title: string;
   shortDescription: string;
   fullDescription: string;
@@ -20,11 +20,11 @@ export interface FoodItem {
 }
 
 export interface Category {
-  id: string;
+  _id: string;
   name: string;
-  icon: string;
-  itemCount: number;
   image: string;
+  itemCount: number;
+  createdAt: string;
 }
 
 export interface Testimonial {
@@ -40,8 +40,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  avatar: string;
-  role: "user" | "admin";
+  role: "customer" | "admin";
 }
 
 export interface Review {
