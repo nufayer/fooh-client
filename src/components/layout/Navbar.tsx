@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Menu,
@@ -13,6 +13,7 @@ import {
   Utensils,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
+import Avatar from "@/components/ui/Avatar";
 
 const publicLinks = [
   { href: "/", label: "Home" },
@@ -33,8 +34,24 @@ export default function Navbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const links = user ? privateLinks : publicLinks;
+
+  const isActive = (href: string) => {
+    const url = new URL(href, window.location.origin);
+    const hrefPath = url.pathname;
+    const hrefView = url.searchParams.get("view");
+    const currentView = searchParams.get("view");
+
+    if (hrefView) {
+      return pathname === hrefPath && currentView === hrefView;
+    }
+    if (pathname === hrefPath && !currentView) {
+      return true;
+    }
+    return false;
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-bg-dark/80 backdrop-blur-xl border-b border-border">
@@ -55,7 +72,7 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === link.href
+                  isActive(link.href)
                     ? "text-primary bg-primary/10"
                     : "text-text-secondary hover:text-text-primary hover:bg-bg-hover"
                 }`}
@@ -72,11 +89,7 @@ export default function Navbar() {
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                   className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-bg-hover transition-colors"
                 >
-                  <img
-                    src={user.avatar}
-                    alt={user.name}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
+                  <Avatar name={user.name} size="sm" />
                   <span className="text-sm font-medium text-text-primary">
                     {user.name}
                   </span>
@@ -143,7 +156,7 @@ export default function Navbar() {
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                  pathname === link.href
+                  isActive(link.href)
                     ? "text-primary bg-primary/10"
                     : "text-text-secondary hover:text-text-primary hover:bg-bg-hover"
                 }`}

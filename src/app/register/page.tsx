@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
@@ -20,12 +20,14 @@ export default function RegisterPage() {
     password?: string;
     confirmPassword?: string;
   }>({});
-  const { register, loginWithGoogle, isLoading } = useAuth();
+  const [serverError, setServerError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { register, loginWithGoogle } = useAuth();
   const router = useRouter();
 
   const validate = () => {
     const newErrors: typeof errors = {};
-    if (!name) {
+    if (!name.trim()) {
       newErrors.name = "Name is required";
     }
     if (!email) {
@@ -47,15 +49,28 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setServerError("");
     if (validate()) {
-      await register(name, email, password);
-      router.push("/");
+      setIsSubmitting(true);
+      try {
+        await register(name, email, password);
+        router.push("/");
+      } catch (err: any) {
+        setServerError(err.message || "Registration failed. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
   const handleGoogleLogin = async () => {
-    await loginWithGoogle();
-    router.push("/");
+    setServerError("");
+    try {
+      await loginWithGoogle();
+      router.push("/");
+    } catch (err: any) {
+      setServerError(err.message || "Google login failed");
+    }
   };
 
   return (
@@ -70,6 +85,13 @@ export default function RegisterPage() {
               Join FOOH and start ordering delicious food
             </p>
           </div>
+
+          {serverError && (
+            <div className="flex items-center gap-2 p-3 mb-6 bg-error/10 border border-error/30 rounded-xl text-error text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {serverError}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
@@ -125,29 +147,11 @@ export default function RegisterPage() {
               icon={<Lock className="w-4 h-4" />}
             />
 
-            <div className="flex items-start gap-2">
-              <input
-                type="checkbox"
-                className="w-4 h-4 mt-1 rounded border-border bg-bg-surface text-primary focus:ring-primary"
-                required
-              />
-              <span className="text-sm text-text-secondary">
-                I agree to the{" "}
-                <Link href="/#terms" className="text-primary hover:text-primary-light">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/#privacy" className="text-primary hover:text-primary-light">
-                  Privacy Policy
-                </Link>
-              </span>
-            </div>
-
             <Button
               type="submit"
               variant="primary"
               className="w-full"
-              isLoading={isLoading}
+              isLoading={isSubmitting}
             >
               Create Account
             </Button>

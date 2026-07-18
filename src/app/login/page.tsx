@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
@@ -13,7 +13,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const { login, loginWithGoogle, isLoading } = useAuth();
+  const [serverError, setServerError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, loginWithGoogle } = useAuth();
   const router = useRouter();
 
   const validate = () => {
@@ -25,8 +27,6 @@ export default function LoginPage() {
     }
     if (!password) {
       newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -34,22 +34,43 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setServerError("");
     if (validate()) {
-      await login(email, password);
-      router.push("/");
+      setIsSubmitting(true);
+      try {
+        await login(email, password);
+        router.push("/");
+      } catch (err: any) {
+        setServerError(err.message || "Invalid email or password");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
   const handleDemoLogin = async () => {
+    setServerError("");
     setEmail("demo@fooh.com");
     setPassword("demo123");
-    await login("demo@fooh.com", "demo123");
-    router.push("/");
+    setIsSubmitting(true);
+    try {
+      await login("demo@fooh.com", "demo123");
+      router.push("/");
+    } catch (err: any) {
+      setServerError(err.message || "Demo login failed. Please register first.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleGoogleLogin = async () => {
-    await loginWithGoogle();
-    router.push("/");
+    setServerError("");
+    try {
+      await loginWithGoogle();
+      router.push("/");
+    } catch (err: any) {
+      setServerError(err.message || "Google login failed");
+    }
   };
 
   return (
@@ -64,6 +85,13 @@ export default function LoginPage() {
               Sign in to your FOOH account
             </p>
           </div>
+
+          {serverError && (
+            <div className="flex items-center gap-2 p-3 mb-6 bg-error/10 border border-error/30 rounded-xl text-error text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {serverError}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
@@ -99,27 +127,11 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-text-secondary">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded border-border bg-bg-surface text-primary focus:ring-primary"
-                />
-                Remember me
-              </label>
-              <Link
-                href="/#forgot-password"
-                className="text-primary hover:text-primary-light transition-colors"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
             <Button
               type="submit"
               variant="primary"
               className="w-full"
-              isLoading={isLoading}
+              isLoading={isSubmitting}
             >
               Sign In
             </Button>
@@ -164,7 +176,7 @@ export default function LoginPage() {
               variant="outline"
               className="w-full"
               onClick={handleDemoLogin}
-              disabled={isLoading}
+              disabled={isSubmitting}
             >
               Try Demo Account
             </Button>
