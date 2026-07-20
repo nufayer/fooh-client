@@ -6,6 +6,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import ChatWidget from "@/components/chat/ChatWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({
             </Suspense>
             <main className="flex-1">{children}</main>
             <Footer />
+            <ChatWidget />
           </CartProvider>
         </AuthProvider>
       </body>
