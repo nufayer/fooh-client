@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = async () => {
     const result = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "http://localhost:3000",
+      callbackURL: window.location.origin,
     });
     if (result.error) {
       throw new Error(result.error.message || "Google login failed");

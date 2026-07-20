@@ -33,7 +33,7 @@ const customerLinks = [
 
 const adminLinks = [
   { href: "/", label: "Home" },
-  { href: "/explore", label: "Explore" },
+  { href: "/admin", label: "Dashboard" },
   { href: "/orders", label: "Orders" },
   { href: "/items/add", label: "Add Item" },
   { href: "/items/manage", label: "Manage Items" },
